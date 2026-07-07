@@ -5,6 +5,7 @@ import { TrendingList } from './components/TrendingList';
 import { RecommendedList } from './components/RecommendedList';
 import { ItemDetails } from './components/ItemDetails';
 import { FavoritePanel } from './components/FavoritePanel';
+import type { NaverTrendItem } from './types';
 import './App.scss';
 
 interface SelectedItem {
@@ -13,6 +14,7 @@ interface SelectedItem {
   sellerCount?: number;
   sellerLevel?: string;
   potential?: string;
+  dataPoints?: NaverTrendItem[];
 }
 
 export default function App() {

@@ -1,4 +1,5 @@
 import { useFavoriteStore } from '../store/favoriteStore';
+import type { NaverTrendItem } from '../types';
 
 interface ItemDetailsProps {
   item: {
@@ -7,11 +8,22 @@ interface ItemDetailsProps {
     sellerCount?: number;
     sellerLevel?: string;
     potential?: string;
+    dataPoints?: NaverTrendItem[];
   } | null;
 }
 
 export function ItemDetails({ item }: ItemDetailsProps) {
   const { addFavorite, removeFavorite, isFavorite } = useFavoriteStore();
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    } catch {
+      return dateStr;
+    }
+  };
 
   if (!item) {
     return (
@@ -86,6 +98,47 @@ export function ItemDetails({ item }: ItemDetailsProps) {
           </span>
         </div>
       </div>
+
+      {item.dataPoints && item.dataPoints.length > 0 && (
+        <div className="trend-chart-section">
+          <h3>📈 일자별 검색 트렌드 추이</h3>
+          <div className="chart-wrapper">
+            {/* 세로축 (Y-axis) */}
+            <div className="y-axis">
+              <span>100</span>
+              <span>75</span>
+              <span>50</span>
+              <span>25</span>
+              <span>0</span>
+            </div>
+
+            {/* 격자선 (Grid Lines) */}
+            <div className="chart-grid-lines">
+              <div className="grid-line" />
+              <div className="grid-line" />
+              <div className="grid-line" />
+              <div className="grid-line" />
+              <div className="grid-line" />
+            </div>
+
+            {/* 차트 영역 */}
+            <div className="chart-container">
+              {item.dataPoints.map((point) => (
+                <div key={point.date} className="chart-bar-wrap" title={`${point.date}: ${point.ratio.toFixed(1)}%`}>
+                  <div className="chart-bar-value">{point.ratio.toFixed(0)}%</div>
+                  <div className="chart-bar-container">
+                    <div
+                      className="chart-bar"
+                      style={{ height: `${Math.max(4, point.ratio)}%` }}
+                    />
+                  </div>
+                  <div className="chart-bar-date">{formatDate(point.date)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="details-actions">
         <button 
