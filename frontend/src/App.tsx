@@ -31,11 +31,13 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="header-logo">
-          <span className="logo-icon">📈</span>
-          <h1>smartstore-item-finder</h1>
+        <div className="header-inner">
+          <div className="header-logo">
+            <span className="logo-icon">📈</span>
+            <h1>smartstore-item-finder</h1>
+          </div>
+          <p className="header-tagline">네이버 데이터랩 API 기반 검색 트렌드 분석 & 아이템 발굴 도구</p>
         </div>
-        <p className="header-tagline">네이버 데이터랩 API 기반 검색 트렌드 분석 & 아이템 발굴 도구</p>
       </header>
 
       <main className="app-main">
