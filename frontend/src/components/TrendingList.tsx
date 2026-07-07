@@ -27,6 +27,13 @@ export function TrendingList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refetch]);
 
+  // trendItem이 새로 로드되거나 변경되면 상세 보기 아이템 자동 선택
+  useEffect(() => {
+    if (trendItem) {
+      onSelectItem(trendItem);
+    }
+  }, [trendItem, onSelectItem]);
+
   const renderContent = () => {
     // 검색어 없을 때
     if (!searchTerm) {

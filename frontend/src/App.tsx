@@ -41,6 +41,8 @@ export default function App() {
     const trimmed = keyword.trim();
     if (!trimmed) return;
 
+    setShowRecommended(false);
+
     if (trimmed === searchTerm) {
       // 동일 키워드 재검색 시에만 refetch 강제 호출
       trendingRefetchRef.current?.();
