@@ -1,12 +1,16 @@
 import type { RecommendedItem } from '../api/queries';
-import type { LocalItem } from '../types';
-
 
 interface RecommendedListProps {
   items: RecommendedItem[];
   isLoading: boolean;
   error: Error | null;
-  onSelectItem: (item: LocalItem) => void;
+  onSelectItem: (item: {
+    keyword: string;
+    latestRatio: number;
+    sellerCount: number;
+    sellerLevel: string;
+    potential: string;
+  }) => void;
 }
 
 export function RecommendedList({ 
@@ -47,15 +51,21 @@ export function RecommendedList({
         <div 
           key={item.keyword}
           className="recommended-item"
-          onClick={() => item.localDetails && onSelectItem(item.localDetails)}
+          onClick={() => onSelectItem({
+            keyword: item.keyword,
+            latestRatio: item.searchTrend,
+            sellerCount: item.sellerCount,
+            sellerLevel: item.sellerLevel,
+            potential: item.potential
+          })}
         >
           <div className="rank">{idx + 1}</div>
           
           <div className="item-info">
             <h4>{item.keyword}</h4>
             <p className="description">
-              검색 트렌드: <strong>{item.searchTrend.toFixed(1)}</strong> | 
-              판매자: <strong>{item.sellerLevel}</strong> ({item.sellerCount}명)
+              검색 트렌드: <strong>{item.searchTrend.toFixed(1)}%</strong> | 
+              판매자: <strong>{item.sellerLevel}</strong> ({item.sellerCount.toLocaleString()}명)
             </p>
           </div>
 

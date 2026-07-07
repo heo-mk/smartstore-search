@@ -1,54 +1,101 @@
+import { useEffect } from 'react';
 import { useTrendingKeywords } from '../api/queries';
-import type { LocalItem } from '../types';
-import items from '../data/items.json';
+import type { TrendItem } from '../types';
 
 interface TrendingListProps {
   searchTerm: string;
-  onSelectItem: (item: LocalItem) => void;
+  onSelectItem: (item: TrendItem) => void;
   onRecommendClick: () => void;
   isRecommendLoading: boolean;
+  onRefetchReady?: (refetch: () => void) => void;
 }
 
-export function TrendingList({ 
-  searchTerm, 
+export function TrendingList({
+  searchTerm,
   onSelectItem,
   onRecommendClick,
-  isRecommendLoading
+  isRecommendLoading,
+  onRefetchReady,
 }: TrendingListProps) {
-  // 사용자가 입력한 검색어 혹은 기본 키워드로 네이버 데이터랩 트렌드 API를 조회합니다.
-  const { data: trending, isLoading, error } = useTrendingKeywords(searchTerm || '스마트스토어');
+  const { data: trendItem, isLoading, error, refetch } = useTrendingKeywords(searchTerm);
 
-  // 로컬 데이터(items.json)를 불러와 LocalItem[] 타입으로 정의
-  const localItems = items as LocalItem[];
+  // refetch 함수를 부모에 한 번만 등록
+  useEffect(() => {
+    if (onRefetchReady) {
+      onRefetchReady(() => { refetch(); });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refetch]);
 
-  if (isLoading) {
-    return <div className="loading-state">네이버 데이터랩 실시간 검색량 수집 중...</div>;
-  }
-  
-  if (error) {
-    return <div className="error-state">오류 발생: {error.message}</div>;
-  }
+  const renderContent = () => {
+    // 검색어 없을 때
+    if (!searchTerm) {
+      return (
+        <p className="no-result">
+          검색창에 키워드를 입력하고 엔터를 누르면 네이버 데이터랩 트렌드를 조회합니다.
+        </p>
+      );
+    }
 
-  // 검색어와 매칭되거나, 백엔드 네이버 트렌드 응답에 매칭되는 로컬 상품 필터링
-  let filteredItems = localItems.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trending?.some(t => t.keyword.toLowerCase().includes(item.name.toLowerCase()))
-  );
+    if (isLoading) {
+      return <div className="loading-state">네이버 데이터랩 실시간 검색량 수집 중...</div>;
+    }
 
-  // 네이버 검색 비율(ratio)의 최근 날짜 값을 가져와서 트렌드 점수로 시각화
-  const getTrendRatio = (itemName: string): number | null => {
-    if (!trending || trending.length === 0) return null;
-    const matches = trending.filter(t => t.keyword.toLowerCase().includes(itemName.toLowerCase()));
-    if (matches.length === 0) return null;
-    // 가장 최근 날짜의 ratio를 가져옴
-    return matches[matches.length - 1].ratio;
+    if (error) {
+      return <div className="error-state">오류 발생: {error.message}</div>;
+    }
+
+    if (!trendItem) {
+      return <p className="no-result">"{searchTerm}"에 대한 트렌드 데이터가 없습니다.</p>;
+    }
+
+    return (
+      <div className="list-container">
+        <div
+          className="trending-item-card"
+          onClick={() => onSelectItem(trendItem)}
+        >
+          <div className="item-meta">
+            <span className="category-tag">검색어</span>
+            <h3>{trendItem.keyword}</h3>
+          </div>
+
+          <div className="trend-stats">
+            <div className="trend-badge">
+              <span className="badge-title">최근 검색비율</span>
+              <span className="badge-value">{trendItem.latestRatio.toFixed(1)}%</span>
+            </div>
+            <div className="trend-badge">
+              <span className="badge-title">최고 비율</span>
+              <span className="badge-value">{trendItem.peakRatio.toFixed(1)}%</span>
+            </div>
+            <div className="trend-badge">
+              <span className="badge-title">평균 비율</span>
+              <span className="badge-value">{trendItem.avgRatio.toFixed(1)}%</span>
+            </div>
+          </div>
+
+          {/* 날짜별 미니 바 차트 */}
+          <div className="mini-chart">
+            {trendItem.dataPoints.map((point) => (
+              <div key={point.date} className="bar-wrap" title={`${point.date}: ${point.ratio.toFixed(1)}%`}>
+                <div
+                  className="bar"
+                  style={{ height: `${Math.max(4, point.ratio)}%` }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="trending-list">
       <div className="list-header">
-        <h2>아이템 분석 목록</h2>
-        <button 
+        <h2>트렌드 분석</h2>
+        <button
           className="recommend-button"
           onClick={onRecommendClick}
           disabled={isRecommendLoading}
@@ -56,33 +103,7 @@ export function TrendingList({
           {isRecommendLoading ? '분석 중...' : '최고의 아이템 찾기'}
         </button>
       </div>
-      {filteredItems.length === 0 ? (
-        <p className="no-result">검색 결과와 일치하는 트렌드 아이템이 없습니다.</p>
-      ) : (
-        <div className="list-container">
-          {filteredItems.map(item => {
-            const ratio = getTrendRatio(item.name);
-            return (
-              <div
-                key={item.id}
-                className="trending-item-card"
-                onClick={() => onSelectItem(item)}
-              >
-                <div className="item-meta">
-                  <span className="category-tag">{item.category}</span>
-                  <h3>{item.name}</h3>
-                </div>
-                {ratio !== null && (
-                  <div className="trend-badge">
-                    <span className="badge-title">최근 검색비율</span>
-                    <span className="badge-value">{ratio.toFixed(1)}%</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {renderContent()}
     </div>
   );
 }

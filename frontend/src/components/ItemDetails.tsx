@@ -1,8 +1,13 @@
-import type { LocalItem } from '../types';
 import { useFavoriteStore } from '../store/favoriteStore';
 
 interface ItemDetailsProps {
-  item: LocalItem | null;
+  item: {
+    keyword: string;
+    latestRatio?: number;
+    sellerCount?: number;
+    sellerLevel?: string;
+    potential?: string;
+  } | null;
 }
 
 export function ItemDetails({ item }: ItemDetailsProps) {
@@ -16,67 +21,68 @@ export function ItemDetails({ item }: ItemDetailsProps) {
     );
   }
 
-  const isFav = isFavorite(item.id);
+  const isFav = isFavorite(item.keyword);
 
   const handleToggleFavorite = () => {
     if (isFav) {
-      removeFavorite(item.id);
+      removeFavorite(item.keyword);
     } else {
-      addFavorite(item);
+      addFavorite({
+        keyword: item.keyword,
+        latestRatio: item.latestRatio || 0,
+        sellerCount: item.sellerCount || 0,
+        sellerLevel: item.sellerLevel || '알 수 없음',
+        potential: item.potential || '보통',
+        addedAt: new Date().toISOString()
+      });
     }
   };
 
-  const getDifficultyClass = (level: string) => {
-    if (level === '낮음') return 'badge-low';
-    if (level === '중간') return 'badge-medium';
-    return 'badge-high';
+  const getSellerLevelClass = (level?: string) => {
+    if (level === '매우 적음' || level === '적음') return 'badge-low'; // 낮은 경쟁 -> 녹색/긍정
+    if (level === '보통') return 'badge-medium';
+    return 'badge-high'; // 높은 경쟁 -> 적색/부정
   };
 
-  const getProfitabilityClass = (level: string) => {
-    if (level === '높음') return 'badge-low'; // 수익성 높음 -> 긍정(녹색 tag)
-    if (level === '중간') return 'badge-medium';
-    return 'badge-high';
-  };
-
-  const getCompetitionClass = (level: string) => {
-    if (level === '낮음') return 'badge-low'; // 경쟁 낮음 -> 긍정(녹색 tag)
-    if (level === '중간') return 'badge-medium';
+  const getPotentialClass = (potential?: string) => {
+    if (potential === '매우 높음' || potential === '높음') return 'badge-low'; // 높음 -> 녹색/긍정
+    if (potential === '보통') return 'badge-medium';
     return 'badge-high';
   };
 
   return (
     <div className="item-details">
       <div className="details-header">
-        <span className="category-label">{item.category}</span>
-        <h2>{item.name}</h2>
+        <span className="category-label">실시간 트렌드 분석</span>
+        <h2>{item.keyword}</h2>
       </div>
 
       <div className="metrics-grid">
         <div className="metric-card">
-          <span className="metric-title">진입 난이도</span>
-          <span className={`metric-badge ${getDifficultyClass(item.difficulty)}`}>
-            {item.difficulty}
+          <span className="metric-title">최근 검색비율</span>
+          <span className="metric-badge badge-info">
+            {item.latestRatio !== undefined ? `${item.latestRatio.toFixed(1)}%` : '정보 없음'}
           </span>
         </div>
 
         <div className="metric-card">
-          <span className="metric-title">예상 수익성</span>
-          <span className={`metric-badge ${getProfitabilityClass(item.profitability)}`}>
-            {item.profitability}
+          <span className="metric-title">시장 경쟁도</span>
+          <span className={`metric-badge ${getSellerLevelClass(item.sellerLevel)}`}>
+            {item.sellerLevel || '정보 없음'}
           </span>
         </div>
 
         <div className="metric-card">
-          <span className="metric-title">경쟁 포화도</span>
-          <span className={`metric-badge ${getCompetitionClass(item.competition)}`}>
-            {item.competition}
+          <span className="metric-title">판매 상품 수</span>
+          <span className="metric-badge badge-neutral">
+            {item.sellerCount !== undefined ? `${item.sellerCount.toLocaleString()}개` : '정보 없음'}
           </span>
         </div>
 
         <div className="metric-card">
-          <span className="metric-title">소싱 추천도</span>
-          <span className="stars-value">
-            {'⭐'.repeat(item.rating)}
+          <span className="metric-title">소싱 잠재력</span>
+          <span className={`metric-badge ${getPotentialClass(item.potential)}`}>
+            {item.potential || '정보 없음'}
           </span>
         </div>
       </div>

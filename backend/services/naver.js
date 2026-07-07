@@ -216,5 +216,7 @@ function getDateToday() {
 module.exports = {
   getTrendingKeywords,
   getSellerCount,
-  getRecommendedItems
+  getRecommendedItems,
+  getSellerLevel,
+  getPotentialLevel
 };

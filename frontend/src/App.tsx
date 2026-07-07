@@ -1,18 +1,33 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRecommendedItems } from './api/queries';
 import { SearchBar } from './components/SearchBar';
 import { TrendingList } from './components/TrendingList';
 import { RecommendedList } from './components/RecommendedList';
 import { ItemDetails } from './components/ItemDetails';
 import { FavoritePanel } from './components/FavoritePanel';
-import type { LocalItem } from './types';
 import './App.scss';
+
+interface SelectedItem {
+  keyword: string;
+  latestRatio?: number;
+  sellerCount?: number;
+  sellerLevel?: string;
+  potential?: string;
+}
 
 export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItem, setSelectedItem] = useState<LocalItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [showRecommended, setShowRecommended] = useState(false);
-  
+
+  // TrendingList 내부의 refetch 함수를 저장하는 ref
+  const trendingRefetchRef = useRef<(() => void) | null>(null);
+
+  // TrendingList가 refetch 함수를 준비하면 ref에 저장
+  const handleRefetchReady = useCallback((refetch: () => void) => {
+    trendingRefetchRef.current = refetch;
+  }, []);
+
   // 추천 아이템 쿼리 (수동 호출)
   const { 
     data: recommendedItems = [], 
@@ -20,6 +35,20 @@ export default function App() {
     error: recommendError,
     refetch: refetchRecommendations 
   } = useRecommendedItems();
+
+  // 검색 핸들러: searchTerm 업데이트 및 중복/빈 키워드 제어
+  const handleSearch = useCallback((keyword: string) => {
+    const trimmed = keyword.trim();
+    if (!trimmed) return;
+
+    if (trimmed === searchTerm) {
+      // 동일 키워드 재검색 시에만 refetch 강제 호출
+      trendingRefetchRef.current?.();
+    } else {
+      // 새로운 키워드는 상태 업데이트 -> React Query가 queryKey 변경 감지하여 자동 fetch
+      setSearchTerm(trimmed);
+    }
+  }, [searchTerm]);
 
   // 추천 버튼 클릭 핸들러
   const handleRecommendClick = async () => {
@@ -36,7 +65,7 @@ export default function App() {
             <span className="logo-icon">📈</span>
             <h1>smartstore-item-finder</h1>
           </div>
-          <p className="header-tagline">네이버 데이터랩 API 기반 검색 트렌드 분석 & 아이템 발굴 도구</p>
+          <p className="header-tagline">네이버 데이터랩 API 기반 검색 트렌드 분석 &amp; 아이템 발굴 도구</p>
         </div>
       </header>
 
@@ -45,7 +74,7 @@ export default function App() {
           {/* 좌측: 검색 및 아이템 분석 목록 */}
           <div className="workspace-column left-column">
             <section className="search-section">
-              <SearchBar onSearch={setSearchTerm} />
+              <SearchBar onSearch={handleSearch} />
             </section>
             
             <section className="list-section">
@@ -70,6 +99,7 @@ export default function App() {
                   onSelectItem={setSelectedItem}
                   onRecommendClick={handleRecommendClick}
                   isRecommendLoading={isRecommendLoading}
+                  onRefetchReady={handleRefetchReady}
                 />
               )}
             </section>
@@ -97,4 +127,3 @@ export default function App() {
     </div>
   );
 }
-

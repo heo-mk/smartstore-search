@@ -1,23 +1,62 @@
 const express = require('express');
 const router = express.Router();
-const { getTrendingKeywords, getRecommendedItems } = require('../services/naver');
+const { 
+  getTrendingKeywords, 
+  getRecommendedItems, 
+  getSellerCount, 
+  getPotentialLevel 
+} = require('../services/naver');
 
-// 프론트엔드에서 사용할 로컬 아이템 데이터
-const items = require('../data/items.json');
+// 추천 아이템 분석에 사용할 실시간 인기 이커머스 카테고리/아이템 시드 키워드
+const SEED_KEYWORDS = [
+  'BB크림', '린넨 셔츠', '무선 충전기', '에센스', '에코백', 
+  '텀블러', '블루투스 스피커', '립스틱', '향초', '양말', 
+  '스마트워치', '수건', '캠핑의자', '가습기', '영양제',
+  '요가매트', '무선이어폰', '그립톡', '휴대용 선풍기', '슬리퍼'
+];
 
 /**
  * GET /api/trends
- * 네이버 데이터랩 트렌드 데이터 조회
+ * 네이버 데이터랩 트렌드 및 쇼핑 판매자 수 통합 조회
  * 쿼리: keyword (필수), period (선택, 기본값: '7')
  */
 router.get('/', async (req, res) => {
   try {
-    const { keyword = '스마트스토어', period = '7' } = req.query;
+    const { keyword = '', period = '7' } = req.query;
     const periodDays = parseInt(period, 10) || 7;
-    const data = await getTrendingKeywords(keyword, periodDays);
+    
+    if (!keyword || keyword.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: '검색어가 필요합니다.'
+      });
+    }
+    
+    // 트렌드와 쇼핑 판매자 수 정보 병합 조회
+    const [trendData, sellerData] = await Promise.all([
+      getTrendingKeywords(keyword, periodDays),
+      getSellerCount(keyword).catch(err => {
+        console.warn(`[Trends API Warning] Failed to fetch seller count for "${keyword}":`, err.message);
+        return {
+          keyword,
+          sellerCount: 0,
+          sellerLevel: '알 수 없음'
+        };
+      })
+    ]);
+
+    const latestRatio = trendData && trendData.length > 0 ? trendData[trendData.length - 1].ratio : 0;
+    const potential = getPotentialLevel(latestRatio, sellerData.sellerCount);
+
     res.json({
       success: true,
-      data,
+      data: {
+        trend: trendData,
+        seller: {
+          ...sellerData,
+          potential
+        }
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -32,46 +71,20 @@ router.get('/', async (req, res) => {
 /**
  * GET /api/trends/recommended
  * 추천 아이템 조회 (검색 트렌드 높음 + 판매자 적음)
- * 
- * 로직:
- * 1. 로컬 데이터의 모든 아이템 이름으로 트렌드 조회
- * 2. 각 아이템의 판매자 수 조회
- * 3. 추천 점수(트렌드 + 판매자 수 역)로 정렬
- * 4. 상위 5개 반환
  */
 router.get('/recommended', async (req, res) => {
   try {
-    // 1단계: 로컬 데이터에서 모든 아이템 이름 추출
-    const allItemNames = items.map(item => item.name);
+    console.log(`📊 추천 아이템 조회 시작: ${SEED_KEYWORDS.length}개 시드 키워드`);
 
-    if (allItemNames.length === 0) {
-      return res.json({
-        success: true,
-        data: [],
-        message: '로컬 아이템 데이터가 없습니다.'
-      });
-    }
+    // 모든 시드 아이템의 트렌드 + 판매자 수 데이터 조회 및 정렬
+    const recommendedItems = await getRecommendedItems(SEED_KEYWORDS);
 
-    console.log(`📊 추천 아이템 조회 시작: ${allItemNames.length}개 키워드`);
-
-    // 2단계: 모든 아이템의 트렌드 + 판매자 수 데이터 조회 및 정렬
-    const recommendedItems = await getRecommendedItems(allItemNames);
-
-    // 3단계: 추천 점수 상위 20개 선택
-    const topRecommendations = recommendedItems.slice(0, 20);
-
-    // 4단계: 로컬 아이템 정보와 병합
-    const resultWithDetails = topRecommendations.map(recommended => {
-      const localItem = items.find(item => item.name === recommended.keyword);
-      return {
-        ...recommended,
-        localDetails: localItem || null
-      };
-    });
+    // 추천 점수 상위 10개 선택 (과도한 API 호출 방지 및 고품질 추천 필터링)
+    const topRecommendations = recommendedItems.slice(0, 10);
 
     res.json({
       success: true,
-      data: resultWithDetails,
+      data: topRecommendations,
       totalCount: recommendedItems.length,
       timestamp: new Date().toISOString()
     });
