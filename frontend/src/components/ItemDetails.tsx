@@ -28,7 +28,10 @@ export function ItemDetails({ item }: ItemDetailsProps) {
   if (!item) {
     return (
       <div className="item-details empty-state">
-        <p>왼쪽 목록에서 아이템을 선택하여 상세 분석 정보를 확인하세요.</p>
+        <p>
+          {`왼쪽 목록에서 아이템을 선택하여
+상세 분석 정보를 확인하세요.`}
+        </p>
       </div>
     );
   }

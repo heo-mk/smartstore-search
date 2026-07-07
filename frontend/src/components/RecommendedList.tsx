@@ -47,39 +47,43 @@ export function RecommendedList({
     <div className="recommended-list">
       <h3>🌟 추천 아이템 TOP {items.length}</h3>
       
-      {items.map((item, idx) => (
-        <div 
-          key={item.keyword}
-          className="recommended-item"
-          onClick={() => onSelectItem({
-            keyword: item.keyword,
-            latestRatio: item.searchTrend,
-            sellerCount: item.sellerCount,
-            sellerLevel: item.sellerLevel,
-            potential: item.potential
-          })}
-        >
-          <div className="rank">{idx + 1}</div>
-          
-          <div className="item-info">
-            <h4>{item.keyword}</h4>
-            <p className="description">
-              검색 트렌드: <strong>{item.searchTrend.toFixed(1)}%</strong> | 
-              판매자: <strong>{item.sellerLevel}</strong> ({item.sellerCount.toLocaleString()}명)
-            </p>
-          </div>
-
-          <div className="scores">
-            <div className="score-badge">
-              <span className="label">추천도</span>
-              <span className="value">{item.recommendationScore.toFixed(1)}</span>
+      <div className="list-container">
+        {items.map((item, idx) => (
+          <div 
+            key={item.keyword}
+            className="recommended-item"
+            onClick={() => onSelectItem({
+              keyword: item.keyword,
+              latestRatio: item.searchTrend,
+              sellerCount: item.sellerCount,
+              sellerLevel: item.sellerLevel,
+              potential: item.potential
+            })}
+          >
+            <div className="rank">{idx + 1}</div>
+            
+            <div className="item-content-wrapper">
+              <div className="item-row-top">
+                <h4>{item.keyword}</h4>
+                <div className={`potential ${item.potential.replace(/\s/g, '-').toLowerCase()}`}>
+                  {item.potential}
+                </div>
+              </div>
+              
+              <div className="item-row-bottom">
+                <p className="description">
+                  <span className="trend-info">검색 트렌드: <strong>{item.searchTrend.toFixed(1)}%</strong></span>
+                  <span className="seller-info">판매자: <strong>{item.sellerLevel}</strong> ({item.sellerCount.toLocaleString()}명)</span>
+                </p>
+                <div className="score-badge">
+                  <span className="label">추천도</span>
+                  <span className="value">{item.recommendationScore.toFixed(1)}</span>
+                </div>
+              </div>
             </div>
-            <div className={`potential ${item.potential.replace(/\s/g, '-').toLowerCase()}`}>
-              {item.potential}
-            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

@@ -39,7 +39,8 @@ export function TrendingList({
     if (!searchTerm) {
       return (
         <p className="no-result">
-          검색창에 키워드를 입력하고 엔터를 누르면 네이버 데이터랩 트렌드를 조회합니다.
+          {`검색창에 키워드를 입력하고 엔터를 누르면
+네이버 데이터랩 트렌드를 조회합니다.`}
         </p>
       );
     }
