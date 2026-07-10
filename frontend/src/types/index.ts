@@ -12,12 +12,18 @@ export interface TrendItem {
   peakRatio: number;     // 기간 내 최고 비율
   avgRatio: number;      // 기간 내 평균 비율
   dataPoints: NaverTrendItem[]; // 날짜별 원본 데이터
+  sellerCount?: number;
+  sellerLevel?: string;
+  potential?: string;
 }
 
 // 찜한 아이템 저장 구조 (API 기반으로 전환)
 export interface FavoriteItem {
   keyword: string;       // 검색 키워드
   latestRatio: number;
+  sellerCount?: number;
+  sellerLevel?: string;
+  potential?: string;
   addedAt: string;       // ISO 8601 형식 날짜
 }
 
