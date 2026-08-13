@@ -6,6 +6,11 @@
 
 ---
 
+<img width="1203" height="1313" alt="스크린샷 2026-08-14 032658" src="https://github.com/user-attachments/assets/d134b955-5396-468f-91e0-53b50cde5c3a" />
+<img width="1209" height="1305" alt="스크린샷 2026-08-14 032710" src="https://github.com/user-attachments/assets/afb5f582-12d4-4d50-a2df-7c77797bcb2e" />
+<img width="1177" height="1305" alt="스크린샷 2026-08-14 032732" src="https://github.com/user-attachments/assets/0ab12cb1-1485-41ec-9943-a825f81be4ce" />
+
+
 ## 주요 기능
 
 - **키워드 검색 및 트렌드 분석**
