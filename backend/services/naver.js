@@ -53,8 +53,8 @@ async function getTrendingKeywords(keyword, period = 7) {
       keyword: keyword
     }));
   } catch (error) {
-    const errorMsg = error.response && error.response.data && error.response.data.message
-      ? error.response.data.message
+    const errorMsg = error.response && error.response.data
+      ? (error.response.data.errorMessage || error.response.data.message || error.message)
       : error.message;
     console.error('Naver DataLab API Error:', errorMsg);
     throw new Error(errorMsg);
@@ -72,7 +72,7 @@ async function getSellerCount(keyword) {
   }
 
   try {
-    // 네이버 쇼핑 API 요청 (타임아웃 2초 적용)
+    // 네이버 쇼핑 API 요청 (타임아웃 5초 적용)
     const response = await axios.get(NAVER_SHOPPING_URL, {
       params: {
         query: keyword,
@@ -94,8 +94,8 @@ async function getSellerCount(keyword) {
       sellerLevel: getSellerLevel(total) // "매우 적음", "적음", "보통", "많음", "매우 많음"
     };
   } catch (error) {
-    const errorMsg = error.response && error.response.data && error.response.data.message
-      ? error.response.data.message
+    const errorMsg = error.response && error.response.data
+      ? (error.response.data.errorMessage || error.response.data.message || error.message)
       : error.message;
     console.error('Naver Shopping API Error:', errorMsg);
     throw new Error(errorMsg);
@@ -109,22 +109,36 @@ async function getSellerCount(keyword) {
  */
 async function getRecommendedItems(keywords) {
   try {
-    // 1단계: 모든 키워드의 트렌드 데이터 순차 조회 (레이트 리밋 방지)
+    // 1단계: 모든 키워드의 트렌드 데이터 순차 조회 (개별 에러 발생시 빈 배열 반환)
     const trendResults = [];
     for (const kw of keywords) {
       console.log(`[Trends] Fetching keyword: ${kw}`);
-      const trend = await getTrendingKeywords(kw, 7);
-      trendResults.push(trend);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        const trend = await getTrendingKeywords(kw, 7);
+        trendResults.push(trend);
+      } catch (err) {
+        console.warn(`[Trends Warning] Failed for "${kw}":`, err.message);
+        trendResults.push([]);
+      }
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
 
-    // 2단계: 모든 키워드의 판매자 수 순차 조회 (레이트 리밋 방지)
+    // 2단계: 모든 키워드의 판매자 수 순차 조회 (쇼핑 API 미등록 또는 에러시 기본값 반환)
     const sellerResults = [];
     for (const kw of keywords) {
       console.log(`[Seller Count] Fetching keyword: ${kw}`);
-      const seller = await getSellerCount(kw);
-      sellerResults.push(seller);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        const seller = await getSellerCount(kw);
+        sellerResults.push(seller);
+      } catch (err) {
+        console.warn(`[Seller Count Warning] Failed for "${kw}":`, err.message);
+        sellerResults.push({
+          keyword: kw,
+          sellerCount: 0,
+          sellerLevel: '알 수 없음'
+        });
+      }
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
 
     // 3단계: 트렌드 + 판매자 수 결합
@@ -138,10 +152,9 @@ async function getRecommendedItems(keywords) {
       // 판매자 데이터
       const sellerData = sellerResults[idx];
       const sellerCount = sellerData ? sellerData.sellerCount : 0;
-      const sellerLevel = sellerData ? sellerData.sellerLevel : '보통';
+      const sellerLevel = sellerData ? sellerData.sellerLevel : '알 수 없음';
 
       // 추천 점수 계산: (트렌드 비율 * 0.6) + (판매자수 역으로 * 0.4)
-      // 판매자가 적을수록 높은 점수
       const sellerScore = Math.max(0, Math.min(100,
         100 * (1 - sellerCount / 5000000)
       ));
@@ -157,7 +170,7 @@ async function getRecommendedItems(keywords) {
       };
     });
 
-    // 판매자 수가 '많음' 또는 '매우 많음'인 경쟁이 치열한 상품은 제외 (수요는 많고 공급은 적은 상품 추천)
+    // 판매자 수가 '많음' 또는 '매우 많음'인 경쟁이 치열한 상품은 제외
     const filteredItems = recommendedItems.filter(item => 
       item.sellerLevel !== '많음' && item.sellerLevel !== '매우 많음'
     );
