@@ -1,8 +1,8 @@
 # smartstore-item-finder
 
-네이버 데이터랩 API와 네이버 쇼핑 검색 API를 활용해, 스마트스토어 셀러가 소싱할 아이템을 데이터 기반으로 발굴하는 웹 도구입니다.
+네이버 데이터랩 API 기반 검색 트렌드 분석 & 아이템 발굴 도구
 
-검색량은 높지만 판매자 경쟁은 낮은 "블루오션 아이템"을 20개 시드 키워드 기준으로 자동 분석해, 감이 아닌 수치로 소싱 판단을 도와주는 것을 목표로 만들었습니다.
+네이버 스마트스토어 셀러를 위한 데이터 기반 아이템 발굴 도구입니다. 키워드를 입력하면 최근 7일간의 검색 트렌드와 판매 경쟁 강도를 함께 조회하고, 두 지표를 가중 합산한 추천 점수로 "인기는 높지만 경쟁은 적은" 아이템을 순위로 보여줍니다.
 
 ---
 
@@ -10,58 +10,63 @@
 <img width="1209" height="1305" alt="스크린샷 2026-08-14 032710" src="https://github.com/user-attachments/assets/afb5f582-12d4-4d50-a2df-7c77797bcb2e" />
 <img width="1177" height="1305" alt="스크린샷 2026-08-14 032732" src="https://github.com/user-attachments/assets/0ab12cb1-1485-41ec-9943-a825f81be4ce" />
 
-
 ## 주요 기능
 
-- **키워드 검색 및 트렌드 분석**
+- **키워드 검색**: 검색어를 입력하면 최근 7일간의 네이버 검색 트렌드를 조회합니다
 
-  키워드 입력 시 일자별 검색량 추이, 최근/최고/평균 검색비율, 판매 상품 수, 시장 경쟁도, 소싱 잠재력을 조회합니다.
+- **상세 분석 리포트**: 검색비율, 시장 경쟁도, 판매 상품 수, 소싱 잠재력 4개 지표와 일자별 트렌드 차트를 보여줍니다
 
-- **블루오션 추천 아이템 TOP 10**
+- **자동 아이템 추천 ("최고의 아이템 찾기")**: 20개 시드 키워드를 자동 분석해 추천 점수 상위 10개를 순위로 보여줍니다
 
-  20개 시드 키워드를 자체 추천 알고리즘으로 점수화해, 수요는 높고 경쟁은 낮은 아이템 상위 10개를 자동 추출합니다.
-
-- **찜(즐겨찾기) 관리**
-
-  관심 키워드를 찜하고, 브라우저 로컬 저장소에 저장해 언제든 다시 확인할 수 있습니다.
+- **찜하기**: 관심 있는 키워드를 저장해 재방문 시에도 유지합니다
 
 ---
 
 ## 기술 스택
 
-**프론트엔드**
+### Frontend
 
-- React 19, TypeScript, Vite
+- React 19 + TypeScript
 
-- 상태관리: Zustand (persist 미들웨어)
+- Vite
 
-- 서버 상태: TanStack React Query v5
+- TanStack React Query (서버 상태 관리)
 
-- HTTP: Axios
+- Zustand (클라이언트 상태 관리, 찜 목록 persist)
 
-- 스타일: Sass/SCSS
+- Axios, SCSS
 
-**백엔드**
+### Backend
 
-- Node.js, Express
+- Express
 
-- CORS, dotenv
+- 네이버 데이터랩 Search API, 네이버 쇼핑 Search API 연동
 
-- 외부 API: 네이버 데이터랩 API, 네이버 쇼핑 검색 API
+- DB 없음 (순수 API 프록시 서버)
 
 ---
 
-## 아키텍처
+## 왜 백엔드를 거치나요?
 
-프론트엔드는 네이버 오픈 API를 직접 호출하지 않고, Express 백엔드를 경유하는 BFF(Backend-For-Frontend) 구조로 되어 있습니다.
+프론트엔드가 네이버 API를 직접 호출하지 않고 Express 백엔드를 경유하도록 설계했습니다.
 
-- API 인증키(`NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`)를 브라우저에 노출하지 않기 위함
+- 네이버 API 인증키(Client ID/Secret)를 브라우저에 노출하지 않기 위해서입니다
 
-- 서버 간 통신으로 CORS 제약을 우회하기 위함
+- 네이버 API 서버의 CORS 정책상 브라우저에서의 직접 호출에 제약이 있습니다
 
-- 여러 외부 API 응답을 백엔드에서 취합·정규화한 뒤 프론트에 전달해, 프론트엔드는 렌더링에만 집중할 수 있도록 함
+- 트렌드 API와 쇼핑 API 두 응답을 조합해 추천 점수를 계산하는 로직을 백엔드에 집중시켜, 프론트엔드는 렌더링에만 집중하도록 역할을 분리했습니다
 
-추천 점수는 `(트렌드 비율 × 0.6) + (판매자수 역점수 × 0.4)` 공식으로 계산하며, 판매자 수가 '많음' 이상인 상품은 1차 필터링으로 사전 제외합니다.
+---
+
+## 왜 React Query와 Zustand를 함께 쓰나요?
+
+데이터의 성격에 따라 상태 관리 도구를 분리했습니다.
+
+- 트렌드·추천 데이터는 API 응답에 따라 갱신되는 서버 상태이므로 React Query로 관리합니다
+
+- 찜 목록은 사용자가 명시적으로 조작할 때만 바뀌는 클라이언트 상태이므로 Zustand로 분리했습니다
+
+- 찜 목록은 새로고침 후에도 유지되어야 하므로 `persist` 미들웨어로 localStorage에 자동 저장합니다
 
 ---
 
@@ -74,27 +79,28 @@ git clone https://github.com/heo-mk/smartstore-search.git
 cd smartstore-search
 ```
 
-### 2. 백엔드 실행
+### 2. 환경변수 설정
+
+`backend` 폴더에 `.env` 파일을 만들고 네이버 개발자센터에서 발급받은 API 키를 입력합니다.
+
+```
+NAVER_CLIENT_ID=발급받은_client_id
+NAVER_CLIENT_SECRET=발급받은_client_secret
+```
+
+> 네이버 오픈 API 키는 [네이버 개발자센터](https://developers.naver.com/apps/#/register)에서 애플리케이션 등록 후 발급받을 수 있습니다. 검색(데이터랩), 검색(쇼핑) 두 API 사용 권한이 필요합니다.
+
+### 3. 백엔드 실행
 
 ```bash
 cd backend
 npm install
-```
-
-`backend` 폴더에 `.env` 파일을 만들고 아래 값을 입력합니다.
-
-```
-NAVER_CLIENT_ID=your_client_id
-NAVER_CLIENT_SECRET=your_client_secret
-```
-
-```bash
 npm run dev
 ```
 
 기본적으로 `http://localhost:5000`에서 실행됩니다.
 
-### 3. 프론트엔드 실행
+### 4. 프론트엔드 실행
 
 ```bash
 cd frontend
@@ -102,29 +108,20 @@ npm install
 npm run dev
 ```
 
-> ⚠️ 주의: 백엔드의 CORS origin이 `http://localhost:3000`으로 고정되어 있습니다. Vite 기본 포트(5173)로 실행하면 CORS 오류가 발생할 수 있으니, 프론트엔드를 3000번 포트로 실행하거나 `backend/server.js`의 CORS 설정을 수정해주세요.
+기본적으로 `http://localhost:3000`에서 실행됩니다.
 
 ---
 
-## API 엔드포인트
+## 스크린샷
 
-| 엔드포인트 | 설명 |
-|---|---|
-| `GET /api/trends` | 특정 키워드의 트렌드 및 판매자 수 조회 |
-| `GET /api/trends/recommended` | 20개 시드 키워드 기반 추천 아이템 TOP 10 조회 |
+📸 *초기 화면, 키워드 검색 결과, 상세 분석 리포트, 자동 아이템 추천 스크린샷 삽입*
 
 ---
 
 ## 알려진 제약사항
 
-- 별도 DB가 없어 찜 목록은 브라우저 로컬 저장소에만 저장됩니다.
+- 배포 설정(Dockerfile, CI 등) 없음 — 로컬 실행만 가능합니다
 
-- 배포 환경 설정(Dockerfile, CI 등)은 아직 없으며, 로컬 실행 전용입니다.
+- CORS 허용 origin, API baseURL이 `localhost` 기준으로 하드코딩되어 있어 배포 시 별도 수정이 필요합니다
 
-- 테스트 코드는 작성되어 있지 않습니다.
-
----
-
-## 개발 기간
-
-2026.07.07 – 2026.07.11 (개인 프로젝트, 기획부터 프론트엔드·백엔드 전체 단독 개발)
+- 자동화 테스트는 아직 작성되어 있지 않습니다
