@@ -8,7 +8,10 @@ const PORT = process.env.PORT || 5000;
 
 // 미들웨어
 app.use(cors({
-  origin: 'http://localhost:3000', // 프론트엔드 URL
+  origin: [
+    'http://localhost:3000',
+    'https://niche-item-finder.vercel.app'
+  ],
   credentials: true
 }));
 app.use(express.json());

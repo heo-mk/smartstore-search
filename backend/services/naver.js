@@ -1,5 +1,14 @@
 const axios = require('axios');
 
+// 배열을 n개씩 묶어주는 헬퍼 함수
+function chunk(arr, size) {
+  const result = [];
+  for (let i = 0; i < arr.length; i += size) {
+    result.push(arr.slice(i, i + size));
+  }
+  return result;
+}
+
 const NAVER_DATALAB_URL = 'https://openapi.naver.com/v1/datalab/search';
 const NAVER_SHOPPING_URL = 'https://openapi.naver.com/v1/search/shop.json';
 const CLIENT_ID = process.env.NAVER_CLIENT_ID;
@@ -109,39 +118,49 @@ async function getSellerCount(keyword) {
  */
 async function getRecommendedItems(keywords) {
   try {
-    // 1단계: 모든 키워드의 트렌드 데이터 순차 조회 (개별 에러 발생시 빈 배열 반환)
+    // 1단계: 5개씩 묶어서 트렌드 + 판매자 수 동시 조회
+    const keywordChunks = chunk(keywords, 5);
     const trendResults = [];
-    for (const kw of keywords) {
-      console.log(`[Trends] Fetching keyword: ${kw}`);
-      try {
-        const trend = await getTrendingKeywords(kw, 7);
-        trendResults.push(trend);
-      } catch (err) {
-        console.warn(`[Trends Warning] Failed for "${kw}":`, err.message);
-        trendResults.push([]);
-      }
-      await new Promise(resolve => setTimeout(resolve, 150));
-    }
-
-    // 2단계: 모든 키워드의 판매자 수 순차 조회 (쇼핑 API 미등록 또는 에러시 기본값 반환)
     const sellerResults = [];
-    for (const kw of keywords) {
-      console.log(`[Seller Count] Fetching keyword: ${kw}`);
-      try {
-        const seller = await getSellerCount(kw);
+
+    for (const kwGroup of keywordChunks) {
+      const groupResults = await Promise.all(
+        kwGroup.map(async (kw) => {
+          console.log(`[Trends] Fetching keyword: ${kw}`);
+          console.log(`[Seller Count] Fetching keyword: ${kw}`);
+
+          const [trendOutcome, sellerOutcome] = await Promise.allSettled([
+            getTrendingKeywords(kw, 7),
+            getSellerCount(kw)
+          ]);
+
+          const trend = trendOutcome.status === 'fulfilled'
+            ? trendOutcome.value
+            : [];
+          if (trendOutcome.status === 'rejected') {
+            console.warn(`[Trends Warning] Failed for "${kw}":`, trendOutcome.reason.message);
+          }
+
+          const seller = sellerOutcome.status === 'fulfilled'
+            ? sellerOutcome.value
+            : { keyword: kw, sellerCount: 0, sellerLevel: '알 수 없음' };
+          if (sellerOutcome.status === 'rejected') {
+            console.warn(`[Seller Count Warning] Failed for "${kw}":`, sellerOutcome.reason.message);
+          }
+
+          return { trend, seller };
+        })
+      );
+
+      groupResults.forEach(({ trend, seller }) => {
+        trendResults.push(trend);
         sellerResults.push(seller);
-      } catch (err) {
-        console.warn(`[Seller Count Warning] Failed for "${kw}":`, err.message);
-        sellerResults.push({
-          keyword: kw,
-          sellerCount: 0,
-          sellerLevel: '알 수 없음'
-        });
-      }
+      });
+
       await new Promise(resolve => setTimeout(resolve, 150));
     }
 
-    // 3단계: 트렌드 + 판매자 수 결합
+    // 2단계: 트렌드 + 판매자 수 결합
     const recommendedItems = keywords.map((keyword, idx) => {
       // 트렌드 데이터에서 가장 최근의 ratio 값 추출
       const trendData = trendResults[idx];
