@@ -1,5 +1,7 @@
 # smartstore-item-finder
 
+* **배포 사이트:** [https://niche-item-finder.vercel.app/](https://niche-item-finder.vercel.app/)
+
 네이버 데이터랩 API 기반 검색 트렌드 분석 & 아이템 발굴 도구
 
 네이버 스마트스토어 셀러를 위한 데이터 기반 아이템 발굴 도구입니다. 키워드를 입력하면 최근 7일간의 검색 트렌드와 판매 경쟁 강도를 함께 조회하고, 두 지표를 가중 합산한 추천 점수로 "인기는 높지만 경쟁은 적은" 아이템을 순위로 보여줍니다.
