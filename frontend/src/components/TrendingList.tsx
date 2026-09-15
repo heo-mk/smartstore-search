@@ -5,16 +5,12 @@ import type { TrendItem } from '../types';
 interface TrendingListProps {
   searchTerm: string;
   onSelectItem: (item: TrendItem) => void;
-  onRecommendClick: () => void;
-  isRecommendLoading: boolean;
   onRefetchReady?: (refetch: () => void) => void;
 }
 
 export function TrendingList({
   searchTerm,
   onSelectItem,
-  onRecommendClick,
-  isRecommendLoading,
   onRefetchReady,
 }: TrendingListProps) {
   const { data: trendItem, isLoading, error, refetch } = useTrendingKeywords(searchTerm);
@@ -103,13 +99,6 @@ export function TrendingList({
     <div className="trending-list">
       <div className="list-header">
         <h2>트렌드 분석</h2>
-        <button
-          className="recommend-button"
-          onClick={onRecommendClick}
-          disabled={isRecommendLoading}
-        >
-          {isRecommendLoading ? '분석 중...' : '최고의 아이템 찾기'}
-        </button>
       </div>
       {renderContent()}
     </div>

@@ -79,6 +79,15 @@ export default function App() {
           <div className="workspace-column left-column">
             <section className="search-section">
               <SearchBar onSearch={handleSearch} />
+              <div className="button-group">
+                <button
+                  className="recommend-button"
+                  onClick={handleRecommendClick}
+                  disabled={isRecommendLoading}
+                >
+                  {isRecommendLoading ? '⏳ 분석 중...' : '🌟 아이템 추천 받기'}
+                </button>
+              </div>
             </section>
             
             <section className="list-section">
@@ -101,8 +110,6 @@ export default function App() {
                 <TrendingList
                   searchTerm={searchTerm}
                   onSelectItem={setSelectedItem}
-                  onRecommendClick={handleRecommendClick}
-                  isRecommendLoading={isRecommendLoading}
                   onRefetchReady={handleRefetchReady}
                 />
               )}
