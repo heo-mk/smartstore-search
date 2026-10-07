@@ -11,9 +11,6 @@ import './App.scss';
 interface SelectedItem {
   keyword: string;
   latestRatio?: number;
-  sellerCount?: number;
-  sellerLevel?: string;
-  potential?: string;
   dataPoints?: NaverTrendItem[];
 }
 

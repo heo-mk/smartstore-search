@@ -5,29 +5,19 @@ import type { NaverTrendItem, TrendItem, BackendResponse } from '../types';
 export interface RecommendedItem {
   keyword: string;
   searchTrend: number;
-  sellerCount: number;
-  sellerLevel: string;
-  recommendationScore: number;
-  potential: string;
 }
 
 export interface BackendTrendResponse {
   trend: NaverTrendItem[];
-  seller: {
-    keyword: string;
-    sellerCount: number;
-    sellerLevel: string;
-    potential: string;
-  };
 }
 
 /**
- * 날짜별 NaverTrendItem[] 배열과 판매자 정보를 TrendItem 하나로 집계
+ * 날짜별 NaverTrendItem[] 배열을 TrendItem 하나로 집계
  */
 function aggregateTrendData(data: BackendTrendResponse): TrendItem | null {
   const trend = data.trend;
   if (!trend || trend.length === 0) return null;
-  const keyword = data.seller.keyword || trend[0].keyword;
+  const keyword = trend[0].keyword;
   const ratios = trend.map(d => d.ratio);
   return {
     keyword,
@@ -35,9 +25,6 @@ function aggregateTrendData(data: BackendTrendResponse): TrendItem | null {
     peakRatio: Math.max(...ratios),
     avgRatio: parseFloat((ratios.reduce((a, b) => a + b, 0) / ratios.length).toFixed(1)),
     dataPoints: trend,
-    sellerCount: data.seller.sellerCount,
-    sellerLevel: data.seller.sellerLevel,
-    potential: data.seller.potential,
   };
 }
 

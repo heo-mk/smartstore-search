@@ -10,7 +10,6 @@ function chunk(arr, size) {
 }
 
 const NAVER_DATALAB_URL = 'https://openapi.naver.com/v1/datalab/search';
-const NAVER_SHOPPING_URL = 'https://openapi.naver.com/v1/search/shop.json';
 const CLIENT_ID = process.env.NAVER_CLIENT_ID;
 const CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 
@@ -71,162 +70,53 @@ async function getTrendingKeywords(keyword, period = 7) {
 }
 
 /**
- * 네이버 쇼핑 API에서 특정 키워드의 판매자(상품) 수 조회
- * @param {string} keyword - 검색할 키워드
- * @returns {Promise<Object>} 판매자 정보 객체
- */
-async function getSellerCount(keyword) {
-  if (!CLIENT_ID || !CLIENT_SECRET || CLIENT_ID === 'your_naver_client_id_here' || CLIENT_SECRET === 'your_naver_client_secret_here') {
-    throw new Error('Naver API credentials are missing or placeholder.');
-  }
-
-  try {
-    // 네이버 쇼핑 API 요청 (타임아웃 5초 적용)
-    const response = await axios.get(NAVER_SHOPPING_URL, {
-      params: {
-        query: keyword,
-        display: 1, // 최소 개수 조회 (속도 개선)
-        sort: 'sim' // 정확도 순 정렬
-      },
-      headers: {
-        'X-Naver-Client-Id': CLIENT_ID,
-        'X-Naver-Client-Secret': CLIENT_SECRET
-      },
-      timeout: 5000
-    });
-
-    const total = response.data.total || 0;
-
-    return {
-      keyword: keyword,
-      sellerCount: total,
-      sellerLevel: getSellerLevel(total) // "매우 적음", "적음", "보통", "많음", "매우 많음"
-    };
-  } catch (error) {
-    const errorMsg = error.response && error.response.data
-      ? (error.response.data.errorMessage || error.response.data.message || error.message)
-      : error.message;
-    console.error('Naver Shopping API Error:', errorMsg);
-    throw new Error(errorMsg);
-  }
-}
-
-/**
- * 여러 키워드의 트렌드 + 판매자 수를 결합하여 추천 아이템 반환
+ * 여러 키워드의 검색 트렌드를 조회하여 최근 검색비율 기준 추천 아이템 반환
  * @param {Array<string>} keywords - 조회할 키워드 배열
- * @returns {Promise<Array>} 추천 아이템 배열 (트렌드 점수 + 판매자 수 조합)
+ * @returns {Promise<Array>} 추천 아이템 배열 (keyword, searchTrend), 검색비율 내림차순
  */
 async function getRecommendedItems(keywords) {
   try {
-    // 1단계: 5개씩 묶어서 트렌드 + 판매자 수 동시 조회
+    // 5개씩 묶어서 트렌드 동시 조회
     const keywordChunks = chunk(keywords, 5);
     const trendResults = [];
-    const sellerResults = [];
 
     for (const kwGroup of keywordChunks) {
       const groupResults = await Promise.all(
         kwGroup.map(async (kw) => {
           console.log(`[Trends] Fetching keyword: ${kw}`);
-          console.log(`[Seller Count] Fetching keyword: ${kw}`);
-
-          const [trendOutcome, sellerOutcome] = await Promise.allSettled([
-            getTrendingKeywords(kw, 7),
-            getSellerCount(kw)
-          ]);
-
-          const trend = trendOutcome.status === 'fulfilled'
-            ? trendOutcome.value
-            : [];
-          if (trendOutcome.status === 'rejected') {
-            console.warn(`[Trends Warning] Failed for "${kw}":`, trendOutcome.reason.message);
+          try {
+            return await getTrendingKeywords(kw, 7);
+          } catch (error) {
+            console.warn(`[Trends Warning] Failed for "${kw}":`, error.message);
+            return [];
           }
-
-          const seller = sellerOutcome.status === 'fulfilled'
-            ? sellerOutcome.value
-            : { keyword: kw, sellerCount: 0, sellerLevel: '알 수 없음' };
-          if (sellerOutcome.status === 'rejected') {
-            console.warn(`[Seller Count Warning] Failed for "${kw}":`, sellerOutcome.reason.message);
-          }
-
-          return { trend, seller };
         })
       );
 
-      groupResults.forEach(({ trend, seller }) => {
-        trendResults.push(trend);
-        sellerResults.push(seller);
-      });
+      groupResults.forEach(trend => trendResults.push(trend));
 
       await new Promise(resolve => setTimeout(resolve, 150));
     }
 
-    // 2단계: 트렌드 + 판매자 수 결합
+    // 가장 최근 날짜의 ratio를 검색 트렌드 값으로 사용
     const recommendedItems = keywords.map((keyword, idx) => {
-      // 트렌드 데이터에서 가장 최근의 ratio 값 추출
       const trendData = trendResults[idx];
       const latestRatio = trendData && trendData.length > 0
         ? trendData[trendData.length - 1].ratio
         : 0;
 
-      // 판매자 데이터
-      const sellerData = sellerResults[idx];
-      const sellerCount = sellerData ? sellerData.sellerCount : 0;
-      const sellerLevel = sellerData ? sellerData.sellerLevel : '알 수 없음';
-
-      // 추천 점수 계산: (트렌드 비율 * 0.6) + (판매자수 역으로 * 0.4)
-      const sellerScore = Math.max(0, Math.min(100,
-        100 * (1 - sellerCount / 5000000)
-      ));
-      const recommendationScore = (latestRatio * 0.6) + (sellerScore * 0.4);
-
       return {
         keyword: keyword,
-        searchTrend: latestRatio,           // 0~100, 높을수록 인기
-        sellerCount: sellerCount,           // 판매자 수
-        sellerLevel: sellerLevel,           // "매우 적음" ~ "매우 많음"
-        recommendationScore: parseFloat(recommendationScore.toFixed(2)), // 추천 점수
-        potential: getPotentialLevel(latestRatio, sellerCount) // "매우 높음" ~ "낮음"
+        searchTrend: latestRatio // 0~100, 높을수록 인기
       };
     });
 
-    // 판매자 수가 '많음' 또는 '매우 많음'인 경쟁이 치열한 상품은 제외
-    const filteredItems = recommendedItems.filter(item => 
-      item.sellerLevel !== '많음' && item.sellerLevel !== '매우 많음'
-    );
-
-    // 4단계: 추천 점수 기준으로 정렬 (내림차순)
-    return filteredItems.sort((a, b) => b.recommendationScore - a.recommendationScore);
+    // 검색 트렌드 기준으로 정렬 (내림차순)
+    return recommendedItems.sort((a, b) => b.searchTrend - a.searchTrend);
   } catch (error) {
     console.error('getRecommendedItems Error:', error);
     throw new Error('추천 아이템 생성 실패: ' + error.message);
   }
-}
-
-/**
- * 판매자 수 기준으로 레벨 분류
- */
-function getSellerLevel(count) {
-  if (count < 150000) return '매우 적음';
-  if (count < 500000) return '적음';
-  if (count < 1000000) return '보통';
-  if (count < 5000000) return '많음';
-  return '매우 많음';
-}
-
-/**
- * 트렌드 + 판매자 수 기준으로 수익성 잠재력 평가
- */
-function getPotentialLevel(trend, sellerCount) {
-  // 트렌드는 높고, 판매자는 적을수록 좋음 (블루오션)
-  const trendScore = trend; // 0~100
-  const sellerScore = Math.max(0, 100 * (1 - sellerCount / 5000000));
-  const combinedScore = (trendScore * 0.6) + (sellerScore * 0.4);
-
-  if (combinedScore >= 70) return '매우 높음';
-  if (combinedScore >= 55) return '높음';
-  if (combinedScore >= 40) return '보통';
-  if (combinedScore >= 25) return '낮음';
-  return '매우 낮음';
 }
 
 /**
@@ -247,8 +137,5 @@ function getDateToday() {
 
 module.exports = {
   getTrendingKeywords,
-  getSellerCount,
-  getRecommendedItems,
-  getSellerLevel,
-  getPotentialLevel
+  getRecommendedItems
 };
