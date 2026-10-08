@@ -846,6 +846,8 @@ body {
       border: 1px solid var(--border-color);
       border-radius: 12px;
       color: var(--text-muted);
+      word-break: keep-all;
+      overflow-wrap: anywhere;
     }
   }
 
