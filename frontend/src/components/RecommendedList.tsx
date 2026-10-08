@@ -49,8 +49,8 @@ export function RecommendedList({
       <h3>🌟 추천 아이템 TOP {items.length}</h3>
       {analyzedCount !== undefined && totalCount !== undefined && (
         <small className="analysis-summary">
-          {totalCount}개 중 {analyzedCount}개 분석 완료
-          {analyzedCount < totalCount && ' · 일부 키워드는 조회에 실패해 제외되었습니다'}
+          {totalCount}개 키워드 중 {analyzedCount}개 분석 · 상위 {items.length}개 표시
+          {analyzedCount < totalCount && ' · 일부 키워드는 조회에 실패했습니다'}
         </small>
       )}
       
