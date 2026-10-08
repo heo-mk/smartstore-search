@@ -1,6 +1,7 @@
 # smartstore-item-finder
 
-* **배포 사이트:** [https://niche-item-finder.vercel.app/](https://niche-item-finder.vercel.app/)
+* **프론트엔드 배포 사이트:** [https://niche-item-finder.vercel.app/](https://niche-item-finder.vercel.app/)
+* **백엔드 배포 사이트:** [https://niche-item-finder-api.vercel.app/](https://niche-item-finder-api.vercel.app/)
 
 네이버 데이터랩 API 기반 검색 트렌드 분석 & 아이템 발굴 도구
 
@@ -96,8 +97,8 @@ NAVER_CLIENT_SECRET=발급받은_client_secret
 
 ```bash
 cd backend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 기본적으로 `http://localhost:5000`에서 실행됩니다.
@@ -106,8 +107,8 @@ npm run dev
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 기본적으로 `http://localhost:3000`에서 실행됩니다.
@@ -128,8 +129,8 @@ npm run dev
 
 ## 알려진 제약사항
 
-- 배포 설정(Dockerfile, CI 등) 없음 — 로컬 실행만 가능합니다
+- 배포는 Vercel(프론트엔드·백엔드 각각)에서 이루어지며, Dockerfile·CI 등 별도 배포 자동화 설정은 없습니다
 
-- CORS 허용 origin, API baseURL이 `localhost` 기준으로 하드코딩되어 있어 배포 시 별도 수정이 필요합니다
+- CORS 허용 origin이 `http://localhost:3000`과 `https://niche-item-finder.vercel.app`으로 코드에 고정되어 있어 다른 도메인에서 쓰려면 수정이 필요합니다. API baseURL은 `VITE_API_URL` 환경변수로 지정하며, 없으면 `http://localhost:5000/api`를 사용합니다
 
 - 자동화 테스트는 아직 작성되어 있지 않습니다
