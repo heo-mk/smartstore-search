@@ -2,6 +2,8 @@ import type { RecommendedItem } from '../api/queries';
 
 interface RecommendedListProps {
   items: RecommendedItem[];
+  totalCount?: number;
+  analyzedCount?: number;
   isLoading: boolean;
   error: Error | null;
   onSelectItem: (item: {
@@ -12,6 +14,8 @@ interface RecommendedListProps {
 
 export function RecommendedList({ 
   items, 
+  totalCount,
+  analyzedCount,
   isLoading, 
   error, 
   onSelectItem 
@@ -43,6 +47,12 @@ export function RecommendedList({
   return (
     <div className="recommended-list">
       <h3>🌟 추천 아이템 TOP {items.length}</h3>
+      {analyzedCount !== undefined && totalCount !== undefined && (
+        <small className="analysis-summary">
+          {totalCount}개 중 {analyzedCount}개 분석 완료
+          {analyzedCount < totalCount && ' · 일부 키워드는 조회에 실패해 제외되었습니다'}
+        </small>
+      )}
       
       <div className="list-container">
         {items.map((item, idx) => (

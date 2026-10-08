@@ -29,7 +29,7 @@ export default function App() {
 
   // 추천 아이템 쿼리 (수동 호출)
   const { 
-    data: recommendedItems = [], 
+    data: recommended, 
     isLoading: isRecommendLoading,
     error: recommendError,
     refetch: refetchRecommendations 
@@ -97,7 +97,9 @@ export default function App() {
                     ← 뒤로 가기
                   </button>
                   <RecommendedList
-                    items={recommendedItems}
+                    items={recommended?.items ?? []}
+                    totalCount={recommended?.totalCount}
+                    analyzedCount={recommended?.analyzedCount}
                     isLoading={isRecommendLoading}
                     error={recommendError}
                     onSelectItem={setSelectedItem}

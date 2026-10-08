@@ -7,6 +7,12 @@ export interface RecommendedItem {
   searchTrend: number;
 }
 
+export interface RecommendedResult {
+  items: RecommendedItem[];
+  totalCount?: number;
+  analyzedCount?: number;
+}
+
 export interface BackendTrendResponse {
   trend: NaverTrendItem[];
 }
@@ -65,17 +71,21 @@ export function useTrendingKeywords(keyword: string = '', period: number = 7) {
  * 추천 아이템 조회 훅 (수동 호출)
  */
 export function useRecommendedItems() {
-  return useQuery<RecommendedItem[], Error>({
+  return useQuery<RecommendedResult, Error>({
     queryKey: ['recommendedItems'],
     queryFn: async () => {
       try {
-        const response = await apiClient.get<BackendResponse<RecommendedItem[]>>(
-          '/trends/recommended'
-        );
+        const response = await apiClient.get<
+          BackendResponse<RecommendedItem[]> & { totalCount?: number; analyzedCount?: number }
+        >('/trends/recommended', { timeout: 90000 });
         if (!response.data.success) {
           throw new Error(response.data.error || '추천 데이터 로드 실패');
         }
-        return response.data.data || [];
+        return {
+          items: response.data.data || [],
+          totalCount: response.data.totalCount,
+          analyzedCount: response.data.analyzedCount
+        };
       } catch (error: any) {
         console.error('Recommended Items Error:', error);
         throw error;

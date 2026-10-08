@@ -57,7 +57,7 @@ router.get('/recommended', async (req, res) => {
     console.log(`📊 추천 아이템 조회 시작: ${SEED_KEYWORDS.length}개 시드 키워드`);
 
     // 모든 시드 아이템의 검색 트렌드 조회 및 정렬
-    const recommendedItems = await getRecommendedItems(SEED_KEYWORDS);
+    const { items: recommendedItems, analyzedCount } = await getRecommendedItems(SEED_KEYWORDS);
 
     // 검색비율 상위 10개 선택
     const topRecommendations = recommendedItems.slice(0, 10);
@@ -65,7 +65,8 @@ router.get('/recommended', async (req, res) => {
     res.json({
       success: true,
       data: topRecommendations,
-      totalCount: recommendedItems.length,
+      totalCount: SEED_KEYWORDS.length,
+      analyzedCount,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
