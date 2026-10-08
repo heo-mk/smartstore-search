@@ -108,6 +108,7 @@ body {
 
       @media (max-width: 1200px) {
         grid-template-columns: 1fr;
+        grid-auto-rows: max-content;
         height: auto;
         overflow-y: auto;
         justify-content: stretch;
