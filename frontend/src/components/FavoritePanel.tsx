@@ -20,7 +20,15 @@ export function FavoritePanel({ onSelectItem }: FavoritePanelProps) {
             <li 
               key={item.keyword} 
               className="favorite-item"
+              tabIndex={0}
               onClick={() => onSelectItem(item)}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectItem(item);
+                }
+              }}
             >
               <div className="fav-info">
                 <span className="fav-name">{item.keyword}</span>

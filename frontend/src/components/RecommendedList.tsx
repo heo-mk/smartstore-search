@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import type { RecommendedItem } from '../api/queries';
 
 interface RecommendedListProps {
   items: RecommendedItem[];
   totalCount?: number;
   analyzedCount?: number;
+  updatedAt?: number;
   isLoading: boolean;
   error: Error | null;
   onSelectItem: (item: {
@@ -12,14 +14,30 @@ interface RecommendedListProps {
   }) => void;
 }
 
+function formatFetchedAt(updatedAt: number, now: number): string {
+  const minutes = Math.floor((now - updatedAt) / 60000);
+  return minutes < 1 ? '방금 조회' : `${minutes}분 전 조회`;
+}
+
 export function RecommendedList({ 
   items, 
   totalCount,
   analyzedCount,
+  updatedAt,
   isLoading, 
   error, 
   onSelectItem 
 }: RecommendedListProps) {
+  const [now, setNow] = useState(() => Date.now());
+
+  // 조회 시각 표시를 1분마다 갱신
+  useEffect(() => {
+    if (!updatedAt) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, [updatedAt]);
+
   if (isLoading) {
     return (
       <div className="recommended-list loading">
@@ -46,7 +64,12 @@ export function RecommendedList({
 
   return (
     <div className="recommended-list">
-      <h3>🌟 추천 아이템 TOP {items.length}</h3>
+      <div className="recommended-title">
+        <h3>🌟 추천 아이템 TOP {items.length}</h3>
+        {updatedAt ? (
+          <span className="fetched-at">{formatFetchedAt(updatedAt, now)}</span>
+        ) : null}
+      </div>
       {analyzedCount !== undefined && totalCount !== undefined && (
         <small className="analysis-summary">
           {totalCount}개 키워드 중 {analyzedCount}개 분석 · 상위 {items.length}개 표시
