@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRecommendedItems } from './api/queries';
 import { SearchBar } from './components/SearchBar';
 import { TrendingList } from './components/TrendingList';
@@ -20,6 +20,8 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [showRecommended, setShowRecommended] = useState(false);
   const [showBusyModal, setShowBusyModal] = useState(false);
+  const [showCachedNotice, setShowCachedNotice] = useState(false);
+  const cachedNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // TrendingList 내부의 refetch 함수를 저장하는 ref
   const trendingRefetchRef = useRef<(() => void) | null>(null);
@@ -35,6 +37,7 @@ export default function App() {
     isLoading: isRecommendLoading,
     isFetching: isRecommendFetching,
     isStale: isRecommendStale,
+    dataUpdatedAt: recommendUpdatedAt,
     error: recommendError,
     refetch: refetchRecommendations 
   } = useRecommendedItems();
@@ -65,9 +68,20 @@ export default function App() {
     setShowRecommended(true);
     setSearchTerm('');
     // 보관된 결과가 신선하면(staleTime 이내) 요청 없이 그대로 사용
-    if (recommended && !isRecommendStale) return;
+    if (recommended && !isRecommendStale) {
+      // 안내 문구를 3초간 표시 (재클릭 시 타이머 재시작)
+      if (cachedNoticeTimerRef.current) clearTimeout(cachedNoticeTimerRef.current);
+      setShowCachedNotice(true);
+      cachedNoticeTimerRef.current = setTimeout(() => setShowCachedNotice(false), 3000);
+      return;
+    }
     await refetchRecommendations();
   };
+
+  // 언마운트 시 안내 문구 타이머 정리
+  useEffect(() => () => {
+    if (cachedNoticeTimerRef.current) clearTimeout(cachedNoticeTimerRef.current);
+  }, []);
 
   const closeBusyModal = useCallback(() => setShowBusyModal(false), []);
 
@@ -98,6 +112,11 @@ export default function App() {
                   {isRecommendFetching && <span className="button-spinner" aria-hidden="true" />}
                   {isRecommendFetching ? '분석 중...' : '🌟 아이템 추천 받기'}
                 </button>
+                {showCachedNotice && (
+                  <p className="recommend-notice" role="status">
+                    1시간 안에 조회한 결과입니다.
+                  </p>
+                )}
               </div>
             </section>
             
@@ -114,6 +133,7 @@ export default function App() {
                     items={recommended?.items ?? []}
                     totalCount={recommended?.totalCount}
                     analyzedCount={recommended?.analyzedCount}
+                    updatedAt={recommendUpdatedAt}
                     isLoading={isRecommendLoading}
                     error={recommendError}
                     onSelectItem={setSelectedItem}
