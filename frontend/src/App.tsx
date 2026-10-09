@@ -5,6 +5,7 @@ import { TrendingList } from './components/TrendingList';
 import { RecommendedList } from './components/RecommendedList';
 import { ItemDetails } from './components/ItemDetails';
 import { FavoritePanel } from './components/FavoritePanel';
+import { WarningModal } from './components/WarningModal';
 import type { NaverTrendItem } from './types';
 import './App.scss';
 
@@ -18,6 +19,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [showRecommended, setShowRecommended] = useState(false);
+  const [showBusyModal, setShowBusyModal] = useState(false);
 
   // TrendingList 내부의 refetch 함수를 저장하는 ref
   const trendingRefetchRef = useRef<(() => void) | null>(null);
@@ -31,6 +33,8 @@ export default function App() {
   const { 
     data: recommended, 
     isLoading: isRecommendLoading,
+    isFetching: isRecommendFetching,
+    isStale: isRecommendStale,
     error: recommendError,
     refetch: refetchRecommendations 
   } = useRecommendedItems();
@@ -53,10 +57,19 @@ export default function App() {
 
   // 추천 버튼 클릭 핸들러
   const handleRecommendClick = async () => {
+    // 조회 중에는 요청하지 않고 경고 모달 표시
+    if (isRecommendFetching) {
+      setShowBusyModal(true);
+      return;
+    }
     setShowRecommended(true);
     setSearchTerm('');
+    // 보관된 결과가 신선하면(staleTime 이내) 요청 없이 그대로 사용
+    if (recommended && !isRecommendStale) return;
     await refetchRecommendations();
   };
+
+  const closeBusyModal = useCallback(() => setShowBusyModal(false), []);
 
   return (
     <div className="app">
@@ -80,9 +93,10 @@ export default function App() {
                 <button
                   className="recommend-button"
                   onClick={handleRecommendClick}
-                  disabled={isRecommendLoading}
+                  aria-disabled={isRecommendFetching}
                 >
-                  {isRecommendLoading ? '⏳ 분석 중...' : '🌟 아이템 추천 받기'}
+                  {isRecommendFetching && <span className="button-spinner" aria-hidden="true" />}
+                  {isRecommendFetching ? '분석 중...' : '🌟 아이템 추천 받기'}
                 </button>
               </div>
             </section>
@@ -134,6 +148,13 @@ export default function App() {
       <footer className="app-footer">
         <p>© 2026 smartstore-item-finder MVP. Powered by Naver DataLab API.</p>
       </footer>
+
+      {showBusyModal && (
+        <WarningModal
+          message="추천 조회 중입니다. 완료될 때까지 기다려 주세요."
+          onClose={closeBusyModal}
+        />
+      )}
     </div>
   );
 }
