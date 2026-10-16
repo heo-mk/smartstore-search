@@ -12,7 +12,7 @@ function chunk(arr, size) {
 const NAVER_DATALAB_URL = 'https://openapi.naver.com/v1/datalab/search';
 const CLIENT_ID = process.env.NAVER_CLIENT_ID;
 const CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
-const DATALAB_TIMEOUT_MS = 8000;
+const DATALAB_TIMEOUT_MS = 4000;
 const DATALAB_RETRY_DELAY_MS = 500;
 
 // 재시도 대상: 타임아웃·네트워크 오류(응답 없음), HTTP 429, 5xx
@@ -47,7 +47,7 @@ async function getTrendingKeywords(keyword, period = 7) {
       ]
     };
 
-    // 네이버 데이터랩 API 요청 (타임아웃 8초, 일시적 오류 시 1회 재시도)
+    // 네이버 데이터랩 API 요청 (타임아웃 4초, 일시적 오류 시 1회 재시도)
     const requestConfig = {
       headers: {
         'X-Naver-Client-Id': CLIENT_ID,
