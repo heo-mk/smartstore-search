@@ -12,7 +12,7 @@ function chunk(arr, size) {
 const NAVER_DATALAB_URL = 'https://openapi.naver.com/v1/datalab/search';
 const CLIENT_ID = process.env.NAVER_CLIENT_ID;
 const CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
-const DATALAB_TIMEOUT_MS = 4000;
+const DATALAB_TIMEOUT_MS = 3000;
 const DATALAB_RETRY_DELAY_MS = 500;
 
 // 재시도 대상: 타임아웃·네트워크 오류(응답 없음), HTTP 429, 5xx
@@ -47,7 +47,7 @@ async function getTrendingKeywords(keyword, period = 7) {
       ]
     };
 
-    // 네이버 데이터랩 API 요청 (타임아웃 4초, 일시적 오류 시 1회 재시도)
+    // 네이버 데이터랩 API 요청 (타임아웃 3초, 일시적 오류 시 1회 재시도)
     const requestConfig = {
       headers: {
         'X-Naver-Client-Id': CLIENT_ID,
@@ -57,12 +57,26 @@ async function getTrendingKeywords(keyword, period = 7) {
       timeout: DATALAB_TIMEOUT_MS
     };
     let response;
+    let attempt = 1;
+    let startTime = Date.now();
     try {
       response = await axios.post(NAVER_DATALAB_URL, requestBody, requestConfig);
+      console.log(`[Trends] Timing: keyword="${keyword}" attempt=${attempt} ${Date.now() - startTime}ms ok`);
     } catch (firstError) {
+      const reason = firstError.code || firstError.response?.status || firstError.message;
+      console.log(`[Trends] Timing: keyword="${keyword}" attempt=${attempt} ${Date.now() - startTime}ms fail(${reason})`);
       if (!isRetryableError(firstError)) throw firstError;
       await new Promise(resolve => setTimeout(resolve, DATALAB_RETRY_DELAY_MS));
-      response = await axios.post(NAVER_DATALAB_URL, requestBody, requestConfig);
+      attempt = 2;
+      startTime = Date.now();
+      try {
+        response = await axios.post(NAVER_DATALAB_URL, requestBody, requestConfig);
+        console.log(`[Trends] Timing: keyword="${keyword}" attempt=${attempt} ${Date.now() - startTime}ms ok`);
+      } catch (secondError) {
+        const secondReason = secondError.code || secondError.response?.status || secondError.message;
+        console.log(`[Trends] Timing: keyword="${keyword}" attempt=${attempt} ${Date.now() - startTime}ms fail(${secondReason})`);
+        throw secondError;
+      }
     }
 
     // 응답 데이터 정제
