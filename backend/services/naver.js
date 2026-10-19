@@ -107,8 +107,8 @@ async function getTrendingKeywords(keyword, period = 7) {
  */
 async function getRecommendedItems(keywords) {
   try {
-    // 5개씩 묶어서 트렌드 동시 조회
-    const keywordChunks = chunk(keywords, 5);
+    // 10개씩 묶어서 트렌드 동시 조회
+    const keywordChunks = chunk(keywords, 10);
     const trendResults = [];
 
     for (const kwGroup of keywordChunks) {
