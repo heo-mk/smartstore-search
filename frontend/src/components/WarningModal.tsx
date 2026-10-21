@@ -18,11 +18,11 @@ export function WarningModal({ message, onClose }: WarningModalProps) {
     <AlertDialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>알림</AlertDialogTitle>
+          <AlertDialogTitle>경고</AlertDialogTitle>
           <AlertDialogDescription>{message}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={onClose}>확인</AlertDialogAction>
+          <AlertDialogAction>확인</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
