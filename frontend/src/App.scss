@@ -16,12 +16,6 @@
   --high-color: #f87171;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 body {
   background-color: var(--bg-primary);
   color: var(--text-main);
@@ -1002,40 +996,4 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* 경고 모달 */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
 
-  .modal-box {
-    min-width: 280px;
-    max-width: 90vw;
-    padding: 24px;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    color: var(--text-main);
-    text-align: center;
-    font-family: var(--font-family);
-
-    p {
-      margin-bottom: 20px;
-    }
-
-    .modal-confirm {
-      padding: 8px 24px;
-      background: #a78bfa;
-      color: #1e1040;
-      border: none;
-      border-radius: 8px;
-      font-weight: 700;
-      font-family: var(--font-family);
-      cursor: pointer;
-    }
-  }
-}
